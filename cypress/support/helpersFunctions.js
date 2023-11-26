@@ -1,11 +1,9 @@
 import {faker} from "@faker-js/faker";
 let userPassword = 'passsword11';
-let userEmail = faker.internet.email();
+// let userEmail = faker.internet.email();
 
-export function gettingAccessToken() {
-
-    let accessToken;
-
+export function gettingAuthToken() {
+    let userEmail = faker.internet.email();
     return cy.request({
         method: 'POST',
         url: '/register',
@@ -15,17 +13,15 @@ export function gettingAccessToken() {
         }
     }).then(() => {
 
-         cy.request({
+        return cy.request({
             method: 'POST',
             url:   '/login',
             body: {
                 "email": userEmail,
                 "password": userPassword
             }
-        }).then(response => {
-            accessToken = response.body.accessToken;
-            cy.log(accessToken);
-            return
         })
+    }).then(response => {
+        return response.body.accessToken;
     })
 }

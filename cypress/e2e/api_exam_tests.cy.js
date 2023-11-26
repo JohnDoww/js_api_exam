@@ -1,202 +1,160 @@
-///<reference types="cypress"/>
 import {faker} from '@faker-js/faker';
-import {gettingAccessToken} from "../support/helpersFunctions";
+import {gettingAuthToken} from "../support/helpersFunctions";
+import getMethod from "../support/methods/GetMethod";
+import postMethod from "../support/methods/PostMethod";
+import putMethod from "../support/methods/PutMethod";
+import deleteMethod from "../support/methods/DeleteMethod";
 
-export {gettingAccessToken} from '../support/helpersFunctions'
+let newTitle = faker.internet.email();
+let postId;
+let postTitle = faker.animal.dog();
+let postBody = faker.lorem.lines(1);
+let searchPost1;
+let searchPost2;
 
-// let locll = 'http://localhost:3000';
+
+describe('Api tests', () => {
 
 
-describe('Api', () => {
-
-    it('1. Get only first 10 posts', () => {
-        cy.request({
-            method: 'GET',
-            url: '/posts',
-        }).then(response => {
+    it('1. Get all posts', () => {
+        getMethod.getAllPosts().then(response => {
             expect(response.status).to.eq(200);
             expect(response.headers).to.have.property('content-type', "application/json; charset=utf-8");
         })
+        cy.log('Got all posts');
     });
+
 
     it('2. Get only first 10 posts', () => {
-        cy.request({
-            method: 'GET',
-            url: '/posts?_start=0&_end=10',
-        }).then(response => {
+        getMethod.getFirst10Posts().then(response => {
             expect(response.status).to.eq(200);
-            expect(response.body.length).to.eq(10)
-
-            expect(response.body[0].id).to.eq(1);
-            expect(response.body[1].id).to.eq(2);
-            expect(response.body[2].id).to.eq(3);
-            expect(response.body[3].id).to.eq(4);
-            expect(response.body[4].id).to.eq(5);
-            expect(response.body[5].id).to.eq(6);
-            expect(response.body[6].id).to.eq(7);
-            expect(response.body[7].id).to.eq(8);
-            expect(response.body[8].id).to.eq(9);
-            expect(response.body[9].id).to.eq(10);
+            expect(response.body.length).to.eq(10);
+            expect(response.body.map(item => item.id)).to.deep.equal([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         })
+        cy.log('Got first 10 posts');
     });
+
 
     it('3. Get posts with id:55 and id:60', () => {
-        cy.request({
-            method: 'GET',
-            url: '/posts?id=55&id=60',
-        }).then(response => {
+        searchPost1 = 55;
+        searchPost2 = 60;
+
+        getMethod.getAnyTwoPosts(searchPost1, searchPost2).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body.length).to.eq(2)
-            expect(response.body[0].id).to.eq(55);
-            expect(response.body[1].id).to.eq(60);
+            expect(response.body[0].id).to.eq(searchPost1);
+            expect(response.body[1].id).to.eq(searchPost2);
+        })
+
+        cy.log(`Got posts ${searchPost1} and ${searchPost2}`);
+    });
+
+
+    it('4. Getting 401 status when create postMethod', () => {
+        postMethod.failPostCreation();
+        cy.log(`Got 401 status code when tried to create post`);
+    })
+
+
+    it('5. Create a postMethod', () => {
+        gettingAuthToken().then(token => {
+            cy.log('Got authorization token' );
+
+            postMethod.createEmptyPost(token);
+            cy.log('Created empty postMethod' );
+        })
+    })
+
+
+    it('6. Create a postMethod with body ', () => {
+        gettingAuthToken().then(token => {
+            cy.log('Got authorization token' );
+
+            postMethod.createPostWithContent(token, postTitle, postBody)
+            cy.log('Created postMethod with title and body' );
         })
     });
 
-    it('4. Create a post. Get 401 status code', () => {
-        cy.request({
-            method: 'POST',
-            failOnStatusCode: false,
-            url: '/664/posts'
-        }).then(response => {
-            expect(response.status).to.eq(401);
-        })
-    });
 
-    let accessToken;
-    let userPassword = 'passsword11';
-    let userEmail = faker.internet.email();
-    let postId;
+    it('7. Getting 404 status when update non-existing postMethod ', () => {
 
-    it('5.', () => {
-        cy.request({
-            method: 'POST',
-            url: '/register',
-            body: {
-                "email": userEmail,
-                "password": userPassword
-            }
-        }).then(() => {
-            cy.request({
-                method: 'POST',
-                url:  '/login',
-                body: {
-                    "email": userEmail,
-                    "password": userPassword
-                }
-            }).then(response => {
-                accessToken = response.body.accessToken;
-            }).then(() => {
+        putMethod.failPostUpdating(postTitle, postBody);
+        cy.log(`Got 404 status code when tried to update non-existing post`);
+    })
 
-                cy.request({
-                    method: 'POST',
-                    url:  '/664/posts',
-                    headers: {"Authorization": `Bearer ${accessToken}`}
-                }).then(response => {
-                    expect(response.status).to.eq(201)
-                    postId = response.body.id;
-                }).then(() => {
-                    cy.request({
-                        method: 'GET',
-                        url:  `/posts/${postId}`
-                    }).then(response => {
-                        expect(response.status).to.eq(200);
-                        expect(response.body.id).to.eq(postId);
-                    })
+
+    it('8. Update created postMethod', () => {
+        newTitle = faker.internet.email();
+        postTitle = faker.animal.dog();
+        postBody = faker.lorem.lines(1);
+
+        gettingAuthToken().then(token => {
+            cy.log('Got authorization token' );
+
+            postMethod.createPostWithContent(token, postTitle, postBody).then(postId => {
+                cy.log('Created postMethod with title and body');
+
+                putMethod.putNewPostTitle(postId, newTitle);
+                cy.log('Update creating postMethod. Left there only new title');
+
+                getMethod.getPostById(postId).then(res => {
+                    cy.log('Verify that postMethod was changed correctly');
+                    expect(res.status).to.eq(200);
+                    expect(res.body[0].title).to.not.eq(postTitle);
+                    expect(res.body[0].title).to.eq(newTitle);
+                    expect(res.body[0]).to.not.eq('body')
+                    expect(res.body[0].id).to.eq(postId);
                 })
             })
         })
     })
 
-    it('6. ', () => {
 
-        let accessToken2 = gettingAccessToken();
-        // cy.log(gettingAccessToken());
-        cy.log(accessToken2)
-    });
+    it('9. Getting 404 status when DELETE non-existing postMethod', () => {
+        postId = '664';
 
-    let postTitle = faker.animal.dog();
-    let postBody = faker.lorem.lines(1);
+        deleteMethod.postDeletion(postId).then(response => {
+            expect(response.status).to.eq(404);
+            cy.log(`Got 404 status code when tried to delete non-existing post`);
+        })
+    })
 
-    it('6.1 ', () => {
-        let userEmail = faker.internet.email();
 
-        cy.request({
-            method: 'POST',
-            url: '/register',
-            body: {
-                "email": userEmail,
-                "password": userPassword
-            }
-        }).then(() => {
-            cy.request({
-                method: 'POST',
-                url: '/login',
-                body: {
-                    "email": userEmail,
-                    "password": userPassword
-                }
-            }).then(response => {
-                accessToken = response.body.accessToken;
-            })
-                .then(() => {
-                    cy.request({
-                        method: 'POST',
-                        url: '/posts',
-                        headers: {"Authorization": `Bearer ${accessToken}`},
-                        body: {
-                            "title": postTitle,
-                            "body": postBody
-                        }
-                    }).then(response => {
-                        postId = response.body.id;
-                        expect(response.status).to.eq(201);
-                    })
-                }).then(() => {
-                cy.request({
-                    method: 'GET',
-                    url: `/posts?id=${postId}`,
-                }).then(response => {
+    it('10. Create, update and delete postMethod', () => {
+        newTitle = faker.internet.email();
+        postTitle = faker.animal.dog();
+        postBody = faker.lorem.lines(1);
+
+        gettingAuthToken().then(token => {
+            cy.log('Got authorization token' );
+
+            postMethod.createPostWithContent(token, postTitle, postBody).then(postId => {
+                cy.log('Created postMethod with title and body');
+
+                putMethod.putNewPostTitle(postId, newTitle);
+                cy.log('Update creating postMethod. Left there only new title');
+
+                getMethod.getPostById(postId).then(response => {
+                    cy.log('Verify that postMethod was changed correctly');
                     expect(response.status).to.eq(200);
-                    expect(response.body[0].title).to.eq(postTitle);
-                    expect(response.body[0].body).to.eq(postBody);
+                    expect(response.body[0].title).to.not.eq(postTitle);
+                    expect(response.body[0].title).to.eq(newTitle);
+                    expect(response.body[0]).to.not.eq('body')
                     expect(response.body[0].id).to.eq(postId);
                 })
-            });
 
+                deleteMethod.postDeletion(postId).then(response => {
+                    cy.log('Delete the postMethod');
+                    expect(response.status).to.eq(200);
+                })
 
+                deleteMethod.postDeletion(postId).then(response => {
+                    cy.log('Double check. Post is deleted or not');
+                    expect(response.status).to.eq(404);
+                })
+            })
         })
     })
-
-    it.only('7', ()=>{
-        cy.request({
-            method: 'PUT',
-            failOnStatusCode: false,
-            url: '/posts/664',
-            body: {
-                "title": postTitle,
-                "body": postBody
-            }
-        }).then(response => {
-            expect(response.status).to.eq(404);
-        })
-
-    })
-
-    it.only('8', ()=>{
-        cy.request({
-            method: 'PUT',
-            failOnStatusCode: false,
-            url: '/posts/664',
-            body: {
-                "title": postTitle,
-                "body": postBody
-            }
-        }).then(response => {
-            expect(response.status).to.eq(404);
-        })
-
-    })
-
 
 
 })
