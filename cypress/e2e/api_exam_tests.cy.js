@@ -61,7 +61,7 @@ describe('Api tests', () => {
             cy.log('Got authorization token' );
 
             postMethod.createEmptyPost(token);
-            cy.log('Created empty postMethod' );
+            cy.log('Created empty post' );
         })
     })
 
@@ -71,7 +71,7 @@ describe('Api tests', () => {
             cy.log('Got authorization token' );
 
             postMethod.createPostWithContent(token, postTitle, postBody)
-            cy.log('Created postMethod with title and body' );
+            cy.log('Created post with title and body' );
         })
     });
 
@@ -92,13 +92,13 @@ describe('Api tests', () => {
             cy.log('Got authorization token' );
 
             postMethod.createPostWithContent(token, postTitle, postBody).then(postId => {
-                cy.log('Created postMethod with title and body');
+                cy.log('Created post with title and body');
 
                 putMethod.putNewPostTitle(postId, newTitle);
-                cy.log('Update creating postMethod. Left there only new title');
+                cy.log('Update creating post. Left there only new title');
 
                 getMethod.getPostById(postId).then(res => {
-                    cy.log('Verify that postMethod was changed correctly');
+                    cy.log('Verify that post was changed correctly');
                     expect(res.status).to.eq(200);
                     expect(res.body[0].title).to.not.eq(postTitle);
                     expect(res.body[0].title).to.eq(newTitle);
@@ -129,13 +129,13 @@ describe('Api tests', () => {
             cy.log('Got authorization token' );
 
             postMethod.createPostWithContent(token, postTitle, postBody).then(postId => {
-                cy.log('Created postMethod with title and body');
+                cy.log('Created post with title and body');
 
                 putMethod.putNewPostTitle(postId, newTitle);
-                cy.log('Update creating postMethod. Left there only new title');
+                cy.log('Update creating post. Left there only new title');
 
                 getMethod.getPostById(postId).then(response => {
-                    cy.log('Verify that postMethod was changed correctly');
+                    cy.log('Verify that post was changed correctly');
                     expect(response.status).to.eq(200);
                     expect(response.body[0].title).to.not.eq(postTitle);
                     expect(response.body[0].title).to.eq(newTitle);
@@ -144,7 +144,7 @@ describe('Api tests', () => {
                 })
 
                 deleteMethod.postDeletion(postId).then(response => {
-                    cy.log('Delete the postMethod');
+                    cy.log('Delete the post');
                     expect(response.status).to.eq(200);
                 })
 
